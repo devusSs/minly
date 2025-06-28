@@ -25,12 +25,14 @@ var configsCmd = &cobra.Command{
 
 var configsListCmdDetailed bool
 
+const configsListCmdTabPadding = 2
+
 var configsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all saved configs",
 	Run: func(_ *cobra.Command, _ []string) {
 		if configsListCmdDetailed {
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, configsListCmdTabPadding, ' ', 0)
 
 			fmt.Fprintln(
 				w,
@@ -58,7 +60,7 @@ var configsListCmd = &cobra.Command{
 			return
 		}
 
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, configsListCmdTabPadding, ' ', 0)
 
 		fmt.Fprintln(w, "Project Name\tCreated At\tUpdated At\tMinio Endpoint\tYOURLS Endpoint")
 		for _, cfg := range configs {

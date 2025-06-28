@@ -14,7 +14,9 @@ var newCmd = &cobra.Command{
 	Use:   "new",
 	Short: "Adds a new project if not already present",
 	Run: func(_ *cobra.Command, _ []string) {
-		configs, err := config.GetSaved()
+		var err error
+
+		configs, err = config.GetSaved()
 		cobra.CheckErr(err)
 
 		var projectName string
