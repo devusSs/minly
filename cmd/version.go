@@ -50,5 +50,4 @@ func init() {
 		BoolVarP(&versionPrintPretty, "pretty", "p", false, "Print version information in a human-readable format")
 	versionCmd.Flags().
 		BoolVarP(&versionPrintText, "text", "t", false, "Print version information in plain text format")
-
 }
