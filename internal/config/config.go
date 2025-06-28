@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,8 +64,10 @@ type Config struct {
 	LogsDirectory          string    `json:"logs_directory"`
 	StoragesDirectory      string    `json:"storages_directory"`
 	SecretsServiceName     string    `json:"secrets_service_name"`
+	MinioEndpoint          *url.URL  `json:"minio_endpoint"`
 	MinioPublicBucketName  string    `json:"minio_public_bucket_name"`
 	MinioPrivateBucketName string    `json:"minio_private_bucket_name"`
+	YOURLSEndpoint         *url.URL  `json:"yourls_endpoint"`
 	YOURLSDescription      string    `json:"yourls_description"`
 }
 
@@ -74,7 +77,7 @@ func (c *Config) String() string {
 }
 
 // NewConfig creates a new Config object with the given parameters.
-func NewConfig(projectName string) (*Config, error) {
+func NewConfig(projectName string, minioEndpoint string, yourlsEndpoint string) (*Config, error) {
 	if projectName == "" {
 		return nil, ErrMissingProjectName
 	}
@@ -90,6 +93,18 @@ func NewConfig(projectName string) (*Config, error) {
 		return nil, fmt.Errorf("failed to get default storages directory: %w", err)
 	}
 
+	var minioE *url.URL
+	minioE, err = url.Parse(minioEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Minio endpoint %s: %w", minioEndpoint, err)
+	}
+
+	var yourlsE *url.URL
+	yourlsE, err = url.Parse(yourlsEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse YOURLS endpoint %s: %w", yourlsEndpoint, err)
+	}
+
 	c := &Config{
 		ProjectName:            projectName,
 		CreatedAt:              time.Now(),
@@ -97,8 +112,10 @@ func NewConfig(projectName string) (*Config, error) {
 		LogsDirectory:          logsDir,
 		StoragesDirectory:      storagesDir,
 		SecretsServiceName:     getDefaultSecretsServiceName(),
+		MinioEndpoint:          minioE,
 		MinioPublicBucketName:  fmt.Sprintf("%s-public", projectName),
 		MinioPrivateBucketName: fmt.Sprintf("%s-private", projectName),
+		YOURLSEndpoint:         yourlsE,
 		YOURLSDescription: fmt.Sprintf(
 			"Uploaded using github.com/devusSs/minly for project %s",
 			projectName,
@@ -321,8 +338,16 @@ func validateConfig(c *Config) error {
 
 	c.SecretsServiceName = getDefaultSecretsServiceName()
 
+	if c.MinioEndpoint == nil {
+		return errors.New("minio endpoint is required")
+	}
+
 	c.MinioPublicBucketName = fmt.Sprintf("%s-public", c.ProjectName)
 	c.MinioPrivateBucketName = fmt.Sprintf("%s-private", c.ProjectName)
+
+	if c.YOURLSEndpoint == nil {
+		return errors.New("yourls endpoint is required")
+	}
 
 	c.YOURLSDescription = fmt.Sprintf(
 		"Uploaded using github.com/devusSs/minly for project %s",
