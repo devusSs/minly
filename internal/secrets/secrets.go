@@ -1,10 +1,14 @@
 package secrets
 
 import (
+	"errors"
+
 	"github.com/zalando/go-keyring"
 )
 
 // Keys related to secrets management.
+//
+//nolint:gosec // These are not hardcoded secrets, but rather keys used to access secrets stored in the keyring.
 const (
 	MinioAccessKeyKey    = "MINIO_ACCESS_KEY"
 	MinioAccessSecretKey = "MINIO_ACCESS_SECRET"
@@ -36,7 +40,7 @@ func Save(serviceName string, key string, value string) error {
 func Exists(serviceName string, key string) (bool, error) {
 	_, err := Load(serviceName, key)
 	if err != nil {
-		if err == keyring.ErrNotFound {
+		if errors.Is(err, keyring.ErrNotFound) {
 			return false, nil
 		}
 		return false, err
