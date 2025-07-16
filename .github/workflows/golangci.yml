@@ -1,0 +1,59 @@
+name: golangci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+
+  test-and-build:
+    name: Test and Build
+    runs-on: ubuntu-latest
+
+    needs: lint
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+
+      - name: Test All
+        run: go test -v ./...
+
+      - name: Setup and build using buildscript
+        run: |
+          chmod +x ./scripts/build.sh
+          ./scripts/build.sh
+
+      - name: Run minly version with default output (pretty print)
+        run: ./minly version
+
+      - name: Run minly version with JSON output
+        run: ./minly version -j
+
+      - name: Run minly version with Go string output
+        run: ./minly version -g
