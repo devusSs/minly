@@ -71,6 +71,67 @@ func Logger() *zerolog.Logger {
 	return logger
 }
 
+func CleanOld() error {
+	if file == nil || logger == nil {
+		return errors.New("log not initialized")
+	}
+
+	logsDir, err := setupLogsDir()
+	if err != nil {
+		return fmt.Errorf("failed to setup logs directory: %w", err)
+	}
+
+	var files []os.DirEntry
+	files, err = os.ReadDir(logsDir)
+	if err != nil {
+		return fmt.Errorf("failed to read logs directory: %w", err)
+	}
+
+	fileErrors := make([]error, 0)
+	for _, file := range files {
+		if file.IsDir() {
+			fileErrors = append(fileErrors, fmt.Errorf("unexpected directory %s", file.Name()))
+			continue
+		}
+
+		filePath := filepath.Join(logsDir, file.Name())
+
+		var info os.FileInfo
+		info, err = file.Info()
+		if err != nil {
+			fileErrors = append(
+				fileErrors,
+				fmt.Errorf("failed to get info for file %s: %w", file.Name(), err),
+			)
+			continue
+		}
+
+		if time.Since(info.ModTime()) > logFileRetention {
+			err = os.Remove(filePath)
+			if err != nil {
+				fileErrors = append(
+					fileErrors,
+					fmt.Errorf("failed to remove old log file %s: %w", file.Name(), err),
+				)
+			}
+		}
+	}
+
+	if len(fileErrors) > 0 {
+		var combinedError strings.Builder
+		combinedError.WriteString("failed to clean old log files:\n")
+		for _, err := range fileErrors {
+			combinedError.WriteString(fmt.Sprintf("- %s\n", err.Error()))
+		}
+
+		return errors.New(combinedError.String())
+	}
+
+	return nil
+}
+
+const logFileRetention = 7 * 24 * time.Hour
+
 var (
 	file   *os.File
 	logger *zerolog.Logger
