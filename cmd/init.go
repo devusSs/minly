@@ -20,6 +20,14 @@ var initCmd = &cobra.Command{
 	PreRun: func(_ *cobra.Command, _ []string) {
 		err := log.Setup()
 		checkErr(err, "failed to setup log package")
+
+		// TODO: will this error if the log package flushes before this finishes?
+		go func() {
+			err = log.CleanOld()
+			if err != nil {
+				log.Logger().Error().Err(err).Msg("failed to clean old log files")
+			}
+		}()
 	},
 	PostRun: func(_ *cobra.Command, _ []string) {
 		err := log.Flush()
