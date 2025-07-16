@@ -3,43 +3,50 @@ package log
 import (
 	"errors"
 	"fmt"
-	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 func Setup() error {
-	if file != nil {
-		return errors.New("log file already set up")
+	if file != nil || logger != nil {
+		return errors.New("log already initialized")
 	}
 
-	err := createFile()
+	//nolint:reassign // We intentionally reassign this for performance reasons.
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	console := zerolog.ConsoleWriter{
+		Out:     os.Stderr,
+		NoColor: noColor(),
+	}
+
+	var err error
+	file, err = createFile()
 	if err != nil {
 		return fmt.Errorf("failed to create log file: %w", err)
 	}
 
-	output := io.MultiWriter(os.Stderr, file)
+	multi := zerolog.MultiLevelWriter(console, file)
+	newLogger := zerolog.New(multi).With().Timestamp().Logger()
 
 	if noConsole() {
-		output = file
+		newLogger = newLogger.Output(file)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(output, &slog.HandlerOptions{
-		Level: getLevel(),
-	}))
-
-	slog.SetDefault(logger)
+	leveled := newLogger.Level(level())
+	logger = &leveled
 
 	return nil
 }
 
 func Flush() error {
-	if file == nil {
-		return errors.New("no log file to flush")
+	if file == nil || logger == nil {
+		return errors.New("log not initialized")
 	}
 
 	err := file.Sync()
@@ -52,56 +59,52 @@ func Flush() error {
 		return fmt.Errorf("failed to close log file: %w", err)
 	}
 
-	file = nil
-
 	return nil
 }
 
-func getLevel() slog.Level {
-	s := os.Getenv("MINLY_LOG_LEVEL")
-	s = strings.ToLower(s)
-
-	switch s {
-	case "debug":
-		return slog.LevelDebug
-	case "info":
-		return slog.LevelInfo
-	case "warn":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
+func Logger() *zerolog.Logger {
+	// This should never happen.
+	if logger == nil {
+		panic("log not initialized")
 	}
+
+	return logger
 }
 
-func noConsole() bool {
-	s := os.Getenv("MINLY_LOG_NO_CONSOLE")
+var (
+	file   *os.File
+	logger *zerolog.Logger
+)
+
+func noColor() bool {
+	s := strings.ToLower(os.Getenv("MINLY_LOG_NO_COLOR"))
+	if s == "" {
+		return false
+	}
+
 	b, err := strconv.ParseBool(s)
 	return err == nil && b
 }
 
-var (
-	fileTimestamp = time.Now().Format("2006-01-02_15-04-05")
-	file          *os.File
-)
+var fileTimestamp = time.Now().Format("2006-01-02_15-04-05")
 
-func createFile() error {
+func createFile() (*os.File, error) {
 	logsDir, err := setupLogsDir()
 	if err != nil {
-		return fmt.Errorf("failed to setup logs directory: %w", err)
+		return nil, fmt.Errorf("failed to setup logs directory: %w", err)
 	}
 
 	fileName := fmt.Sprintf("minly_%s.log.json", fileTimestamp)
 
 	filePath := filepath.Join(logsDir, fileName)
 
-	file, err = os.Create(filePath)
+	var f *os.File
+	f, err = os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to create log file: %w", err)
+		return nil, fmt.Errorf("failed to create log file: %w", err)
 	}
 
-	return nil
+	return f, nil
 }
 
 func setupLogsDir() (string, error) {
@@ -118,4 +121,31 @@ func setupLogsDir() (string, error) {
 	}
 
 	return logsDir, nil
+}
+
+func noConsole() bool {
+	s := strings.ToLower(os.Getenv("MINLY_LOG_NO_CONSOLE"))
+	if s == "" {
+		return false
+	}
+
+	b, err := strconv.ParseBool(s)
+	return err == nil && b
+}
+
+func level() zerolog.Level {
+	s := strings.ToLower(os.Getenv("MINLY_LOG_LEVEL"))
+
+	switch s {
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	case "warn":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	default:
+		return zerolog.InfoLevel
+	}
 }
