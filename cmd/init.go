@@ -37,7 +37,7 @@ var initCmd = &cobra.Command{
 
 		var err error
 		cfg, err = config.Read()
-		if err == nil && initOverwrite {
+		if err == nil && !initOverwrite {
 			logErr(
 				errors.New("config exists"),
 				"config already exists, use --overwrite to overwrite it",
