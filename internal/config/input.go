@@ -39,6 +39,12 @@ func FromInput() (*Config, error) {
 		return nil, fmt.Errorf("failed to get MinIO bucket name: %w", err)
 	}
 
+	var minioRegion string
+	minioRegion, err = getMinioRegionFromInput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MinIO region: %w", err)
+	}
+
 	var minioLinkExpiry time.Duration
 	minioLinkExpiry, err = getMinioLinkExpiryFromInput()
 	if err != nil {
@@ -59,6 +65,7 @@ func FromInput() (*Config, error) {
 	cfg.MinioEndpoint = minioEndpoint
 	cfg.MinioUseSSL = minioUseSSL
 	cfg.MinioBucketName = minioBucketName
+	cfg.MinioRegion = minioRegion
 	cfg.MinioLinkExpiry = minioLinkExpiry
 	cfg.YOURLSEndpoint = yourlsEndpoint
 
@@ -141,6 +148,15 @@ func getMinioBucketNameFromInput() (string, error) {
 	}
 
 	return bucketName, nil
+}
+
+func getMinioRegionFromInput() (string, error) {
+	region, err := getInput("Enter MinIO region", "us-east-1")
+	if err != nil {
+		return "", fmt.Errorf("failed to get minio region from input: %w", err)
+	}
+
+	return region, nil
 }
 
 func getMinioLinkExpiryFromInput() (time.Duration, error) {

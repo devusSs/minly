@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -28,6 +29,11 @@ func (c *Config) validate() error {
 	err = validateMinioBucketName(c.MinioBucketName)
 	if err != nil {
 		return fmt.Errorf("invalid minio bucket name: %w", err)
+	}
+
+	err = validateMinioRegion(c.MinioRegion)
+	if err != nil {
+		return fmt.Errorf("invalid minio region: %w", err)
 	}
 
 	err = validateMinioLinkExpiry(c.MinioLinkExpiry)
@@ -133,6 +139,44 @@ func validateMinioBucketName(bucketName string) error {
 				char,
 			)
 		}
+	}
+
+	return nil
+}
+
+var validMinioRegions = []string{
+	"us-east-1",
+	"us-east-2",
+	"us-west-1",
+	"us-west-2",
+	"ca-central-1",
+	"eu-west-1",
+	"eu-west-2",
+	"eu-west-3",
+	"eu-central-1",
+	"eu-north-1",
+	"ap-east-1",
+	"ap-south-1",
+	"ap-southeast-1",
+	"ap-southeast-2",
+	"ap-northeast-1",
+	"ap-northeast-2",
+	"ap-northeast-3",
+	"me-south-1",
+	"sa-east-1",
+	"us-gov-west-1",
+	"us-gov-east-1",
+	"cn-north-1",
+	"cn-northwest-1",
+}
+
+func validateMinioRegion(region string) error {
+	if region == "" {
+		return errors.New("minio_region cannot be empty")
+	}
+
+	if !slices.Contains(validMinioRegions, region) {
+		return fmt.Errorf("invalid minio_region: %s", region)
 	}
 
 	return nil

@@ -17,6 +17,7 @@ type Config struct {
 	MinioEndpoint   string        `json:"minio_endpoint"    env:"MINIO_ENDPOINT"    envDefault:"localhost:9000"`
 	MinioUseSSL     bool          `json:"minio_use_ssl"     env:"MINIO_USE_SSL"     envDefault:"false"`
 	MinioBucketName string        `json:"minio_bucket_name" env:"MINIO_BUCKET_NAME" envDefault:"minly"`
+	MinioRegion     string        `json:"minio_region"      env:"MINIO_REGION"      envDefault:"us-east-1"`
 	MinioLinkExpiry time.Duration `json:"minio_link_expiry" env:"MINIO_LINK_EXPIRY" envDefault:"24h"`
 	YOURLSEndpoint  *url.URL      `json:"yourls_endpoint"   env:"YOURLS_ENDPOINT"   envDefault:"http://localhost:80/yourls-api.php"`
 }
@@ -131,6 +132,7 @@ func newDefaultConfig() *Config {
 		MinioEndpoint:   "localhost:9000",
 		MinioUseSSL:     false,
 		MinioBucketName: "minly",
+		MinioRegion:     "us-east-1",
 		MinioLinkExpiry: minMinioLinkExpiry,
 		YOURLSEndpoint:  &url.URL{Scheme: "http", Host: "localhost:80", Path: "/yourls-api.php"},
 	}
