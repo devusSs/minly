@@ -33,7 +33,7 @@ For more help or information check out the GitHub repository.`,
 			}
 		}
 
-		if lastRun.Error != "" {
+		if lastRun != nil && lastRun.Error != "" {
 			_, err = fmt.Fprintf(
 				os.Stderr,
 				"WARNING: last run error: %s (timestamp: %s)\n",
