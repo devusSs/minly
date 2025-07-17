@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/devusSs/minly/internal/lastrun"
 	"github.com/devusSs/minly/internal/system"
 	"github.com/spf13/cobra"
 )
@@ -22,6 +25,28 @@ For questions regarding commands simply run 'minly help <command>' or 'minly <co
 For more help or information check out the GitHub repository.`,
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
 		checkErr(system.CheckSupported(), "unsupported operating system or architecture")
+
+		lastRun, err := lastrun.Read()
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				checkErr(err, "failed to read last run data")
+			}
+		}
+
+		if lastRun.Error != "" {
+			_, err = fmt.Fprintf(
+				os.Stderr,
+				"WARNING: last run error: %s (timestamp: %s)\n",
+				lastRun.Error,
+				lastRun.Timestamp.Format(time.RFC3339),
+			)
+			checkErr(err, "failed to write last run error message")
+		}
+	},
+	PersistentPostRun: func(_ *cobra.Command, _ []string) {
+		// TODO: catch error from a global variable or function
+		err := lastrun.Write(nil)
+		checkErr(err, "failed to write last run data")
 	},
 }
 
