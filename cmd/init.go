@@ -21,7 +21,6 @@ var initCmd = &cobra.Command{
 		err := log.Setup()
 		checkErr(err, "failed to setup log package")
 
-		// TODO: will this error if the log package flushes before this finishes?
 		go func() {
 			err = log.CleanOld()
 			if err != nil {
