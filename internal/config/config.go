@@ -20,10 +20,16 @@ type Config struct {
 	MinioRegion     string        `json:"minio_region"      env:"MINIO_REGION"      envDefault:"us-east-1"`
 	MinioLinkExpiry time.Duration `json:"minio_link_expiry" env:"MINIO_LINK_EXPIRY" envDefault:"24h"`
 	YOURLSEndpoint  *url.URL      `json:"yourls_endpoint"   env:"YOURLS_ENDPOINT"   envDefault:"http://localhost:80/yourls-api.php"`
+
+	filePath string
 }
 
 func (c *Config) String() string {
 	return fmt.Sprintf("%+v", *c)
+}
+
+func (c *Config) FilePath() string {
+	return c.filePath
 }
 
 func Read() (*Config, error) {
@@ -43,6 +49,8 @@ func Read() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
+
+	cfg.filePath = f.Name()
 
 	return cfg, nil
 }
