@@ -63,6 +63,12 @@ func Flush() error {
 }
 
 func Logger() *zerolog.Logger {
+	// Return a no-op logger if logging is suppressed.
+	if suppressLog {
+		l := zerolog.Nop()
+		return &l
+	}
+
 	// This should never happen.
 	if logger == nil {
 		panic("log not initialized")
@@ -128,6 +134,14 @@ func CleanOld() error {
 	}
 
 	return nil
+}
+
+func Suppress() {
+	suppressLog = true
+}
+
+func Enable() {
+	suppressLog = false
 }
 
 const logFileRetention = 7 * 24 * time.Hour
@@ -210,3 +224,5 @@ func level() zerolog.Level {
 		return zerolog.InfoLevel
 	}
 }
+
+var suppressLog = false
