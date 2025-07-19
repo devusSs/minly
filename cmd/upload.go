@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/devusSs/minly/internal/clipboard"
 	"github.com/devusSs/minly/internal/config"
@@ -120,8 +121,11 @@ var uploadCmd = &cobra.Command{
 		presignedURL, err = mc.UploadFile(ctx, filePath)
 		logErr(err, "failed to upload file to MinIO")
 
-		log.Logger().Info().Str("presigned_url", presignedURL.String()).
-			Msg("file uploaded successfully")
+		presignedURLExpiry := time.Now().Add(cfg.MinioLinkExpiry)
+		log.Logger().Info().
+			Str("presigned_url", presignedURL.String()).
+			Str("presigned_url_expiry", presignedURLExpiry.String()).
+			Msg("file uploaded to MinIO successfully")
 
 		var shortURL string
 		shortURL, err = yc.Shorten(ctx, presignedURL.String())
@@ -139,13 +143,12 @@ var uploadCmd = &cobra.Command{
 			log.Logger().Warn().Msg("short URL not written to clipboard due to --no-clip flag")
 		}
 
-		var fs *storage.FileStore
 		fs, err = storage.NewFileStore()
 		logErr(err, "failed to create storage file store")
 
 		log.Logger().Info().Msg("storage file store created successfully")
 
-		err = fs.Save(storage.NewFile(presignedURL.String(), shortURL))
+		err = fs.Save(storage.NewFile(presignedURL.String(), presignedURLExpiry, shortURL))
 		logErr(err, "failed to save file metadata to storage")
 
 		log.Logger().Info().Msg("file metadata saved to storage successfully")

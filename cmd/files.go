@@ -15,7 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var files []storage.File
+var (
+	fs    *storage.FileStore
+	files []storage.File
+)
 
 var filesCmd = &cobra.Command{
 	Use:   "files",
@@ -33,19 +36,30 @@ var filesCmd = &cobra.Command{
 
 		cfg, err = config.Read()
 		logErr(err, "failed to read configuration")
+
+		fs, err = storage.NewFileStore()
+		logErr(err, "failed to create file store")
+
+		go func() {
+			var deleted int
+			deleted, err = fs.CleanOldFiles()
+			if err != nil {
+				log.Logger().Error().Err(err).Msg("failed to clean old files")
+				return
+			}
+
+			log.Logger().Debug().Int("deleted", deleted).Msg("cleaned old files")
+		}()
+
+		files, err = fs.LoadAll()
+		logErr(err, "failed to load files")
 	},
 	PersistentPostRun: func(_ *cobra.Command, _ []string) {
 		err := log.Flush()
 		checkErr(err, "failed to flush log package")
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		fs, err := storage.NewFileStore()
-		logErr(err, "failed to create file store")
-
-		files, err = fs.LoadAll()
-		logErr(err, "failed to load files")
-
-		err = printFilesAsTable()
+		err := printFilesAsTable()
 		logErr(err, "failed to print files as table")
 	},
 }
@@ -64,10 +78,10 @@ func printFilesAsTable() error {
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.Header([]string{"Timestamp", "Minio Key", "YOURLS Key"})
+	table.Header([]string{"ID", "Timestamp", "Minio Key", "Minio Link Expires", "YOURLS Key"})
 
 	for _, f := range files {
-		ts := f.Timestamp.UTC().Format(time.RFC3339)
+		ts := f.Timestamp.Format(time.RFC3339)
 
 		minURL, err := url.Parse(f.MinioLink)
 		if err != nil {
@@ -83,7 +97,9 @@ func printFilesAsTable() error {
 		minioKey := strings.TrimPrefix(minURL.Path, "/")
 		yourlsKey := strings.TrimPrefix(yourlsURL.Path, "/")
 
-		err = table.Append([]string{ts, minioKey, yourlsKey})
+		err = table.Append(
+			[]string{f.ID, ts, minioKey, f.MinioLinkExpires.Format(time.RFC3339), yourlsKey},
+		)
 		if err != nil {
 			return fmt.Errorf("failed to append row to table: %w", err)
 		}
