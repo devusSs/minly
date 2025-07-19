@@ -9,12 +9,16 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type File struct {
-	Timestamp  time.Time `json:"timestamp"`
-	MinioLink  string    `json:"minio_link"`
-	YOURLSLink string    `json:"yourls_link"`
+	ID               string    `json:"id"`
+	Timestamp        time.Time `json:"timestamp"`
+	MinioLink        string    `json:"minio_link"`
+	MinioLinkExpires time.Time `json:"minio_link_expires"`
+	YOURLSLink       string    `json:"yourls_link"`
 }
 
 func (f *File) String() string {
@@ -22,12 +26,20 @@ func (f *File) String() string {
 }
 
 func (f *File) validate() error {
+	if f.ID == "" {
+		return errors.New("id is required")
+	}
+
 	if f.Timestamp.IsZero() {
 		return errors.New("timestamp is required")
 	}
 
 	if f.MinioLink == "" {
 		return errors.New("minio_link is required")
+	}
+
+	if f.MinioLinkExpires.IsZero() {
+		return errors.New("minio_link_expires is required")
 	}
 
 	if f.YOURLSLink == "" {
@@ -37,11 +49,13 @@ func (f *File) validate() error {
 	return nil
 }
 
-func NewFile(minioLink, yourlsLink string) *File {
+func NewFile(minioLink string, minioLinkExpires time.Time, yourlsLink string) *File {
 	return &File{
-		Timestamp:  time.Now(),
-		MinioLink:  minioLink,
-		YOURLSLink: yourlsLink,
+		ID:               uuid.NewString(),
+		Timestamp:        time.Now(),
+		MinioLink:        minioLink,
+		MinioLinkExpires: minioLinkExpires,
+		YOURLSLink:       yourlsLink,
 	}
 }
 
@@ -78,8 +92,7 @@ func (fs *FileStore) Save(file *File) error {
 
 	filename := filepath.Join(fs.dir, file.Timestamp.Format("2006-01")+".jsonl")
 
-	var f *os.File
-	f, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filename, err)
 	}
@@ -125,6 +138,10 @@ func (fs *FileStore) LoadAll() ([]File, error) {
 				return nil, fmt.Errorf("failed to unmarshal file %s: %w", fullPath, err)
 			}
 
+			if fobj.ID == "" {
+				fobj.ID = uuid.NewString()
+			}
+
 			err = fobj.validate()
 			if err != nil {
 				return nil, fmt.Errorf("file validation failed for %s: %w", fullPath, err)
@@ -140,6 +157,93 @@ func (fs *FileStore) LoadAll() ([]File, error) {
 	}
 
 	return result, nil
+}
+
+//nolint:gocognit // This was vibe-coded and might be changed in the future.
+func (fs *FileStore) CleanOldFiles() (int, error) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	files, err := os.ReadDir(fs.dir)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read storage dir: %w", err)
+	}
+
+	now := time.Now()
+	totalDeleted := 0
+
+	for _, entry := range files {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
+			continue
+		}
+
+		fullPath := filepath.Join(fs.dir, entry.Name())
+
+		var f *os.File
+		f, err = os.Open(fullPath)
+		if err != nil {
+			return totalDeleted, fmt.Errorf("failed to open file %s: %w", fullPath, err)
+		}
+
+		var keep []File
+		scanner := bufio.NewScanner(f)
+
+		for scanner.Scan() {
+			var fobj File
+			err = json.Unmarshal(scanner.Bytes(), &fobj)
+			if err != nil {
+				_ = f.Close()
+				return totalDeleted, fmt.Errorf("failed to unmarshal file %s: %w", fullPath, err)
+			}
+
+			if fobj.MinioLinkExpires.After(now) {
+				keep = append(keep, fobj)
+			} else {
+				totalDeleted++
+			}
+		}
+		err = f.Close()
+		if err != nil {
+			return totalDeleted, fmt.Errorf("failed to close file %s: %w", fullPath, err)
+		}
+
+		if len(keep) < 1 {
+			err = os.Remove(fullPath)
+			if err != nil {
+				return totalDeleted, fmt.Errorf(
+					"failed to remove expired file %s: %w",
+					fullPath,
+					err,
+				)
+			}
+			continue
+		}
+
+		tmpPath := fullPath + ".tmp"
+
+		var tmpFile *os.File
+		tmpFile, err = os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+		if err != nil {
+			return totalDeleted, fmt.Errorf("failed to create temp file for %s: %w", fullPath, err)
+		}
+
+		enc := json.NewEncoder(tmpFile)
+		for _, f := range keep {
+			err = enc.Encode(f)
+			if err != nil {
+				_ = tmpFile.Close()
+				return totalDeleted, fmt.Errorf("failed to encode retained file: %w", err)
+			}
+		}
+		_ = tmpFile.Close()
+
+		err = os.Rename(tmpPath, fullPath)
+		if err != nil {
+			return totalDeleted, fmt.Errorf("failed to replace original file %s: %w", fullPath, err)
+		}
+	}
+
+	return totalDeleted, nil
 }
 
 func getStorageDir() (string, error) {
