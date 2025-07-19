@@ -76,7 +76,7 @@ func randomizeObjectName(file string) (string, error) {
 		return "", fmt.Errorf("failed to generate random UUID: %w", err)
 	}
 
-	return fmt.Sprintf("%s-%s%s", uid.String(), file[:len(file)-len(ext)], ext), nil
+	return fmt.Sprintf("%s%s", uid.String(), ext), nil
 }
 
 func getContentType(path string) (string, error) {
