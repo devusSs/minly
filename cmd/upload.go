@@ -12,6 +12,7 @@ import (
 	"github.com/devusSs/minly/internal/log"
 	"github.com/devusSs/minly/internal/minio"
 	"github.com/devusSs/minly/internal/secret"
+	"github.com/devusSs/minly/internal/storage"
 	"github.com/devusSs/minly/internal/yourls"
 	"github.com/spf13/cobra"
 )
@@ -137,6 +138,17 @@ var uploadCmd = &cobra.Command{
 		} else {
 			log.Logger().Warn().Msg("short URL not written to clipboard due to --no-clip flag")
 		}
+
+		var fs *storage.FileStore
+		fs, err = storage.NewFileStore()
+		logErr(err, "failed to create storage file store")
+
+		log.Logger().Info().Msg("storage file store created successfully")
+
+		err = fs.Save(storage.NewFile(presignedURL.String(), shortURL))
+		logErr(err, "failed to save file metadata to storage")
+
+		log.Logger().Info().Msg("file metadata saved to storage successfully")
 	},
 }
 
