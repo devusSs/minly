@@ -3,6 +3,7 @@ package storage
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,6 +19,22 @@ type File struct {
 
 func (f *File) String() string {
 	return fmt.Sprintf("%+v", *f)
+}
+
+func (f *File) validate() error {
+	if f.Timestamp.IsZero() {
+		return errors.New("timestamp is required")
+	}
+
+	if f.MinioLink == "" {
+		return errors.New("minio_link is required")
+	}
+
+	if f.YOURLSLink == "" {
+		return errors.New("yourls_link is required")
+	}
+
+	return nil
 }
 
 func NewFile(minioLink, yourlsLink string) *File {
@@ -50,9 +67,19 @@ func (fs *FileStore) Save(file *File) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
+	if file == nil {
+		return errors.New("file cannot be nil")
+	}
+
+	err := file.validate()
+	if err != nil {
+		return fmt.Errorf("file validation failed: %w", err)
+	}
+
 	filename := filepath.Join(fs.dir, file.Timestamp.Format("2006-01")+".jsonl")
 
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	var f *os.File
+	f, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filename, err)
 	}
@@ -79,7 +106,7 @@ func (fs *FileStore) LoadAll() ([]File, error) {
 
 	for _, entry := range files {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
-			continue
+			return nil, fmt.Errorf("invalid file %s in storage directory", entry.Name())
 		}
 
 		fullPath := filepath.Join(fs.dir, entry.Name())
@@ -87,16 +114,23 @@ func (fs *FileStore) LoadAll() ([]File, error) {
 		var f *os.File
 		f, err = os.Open(fullPath)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("failed to open file %s: %w", fullPath, err)
 		}
 
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			var fobj File
 			err = json.Unmarshal(scanner.Bytes(), &fobj)
-			if err == nil {
-				result = append(result, fobj)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal file %s: %w", fullPath, err)
 			}
+
+			err = fobj.validate()
+			if err != nil {
+				return nil, fmt.Errorf("file validation failed for %s: %w", fullPath, err)
+			}
+
+			result = append(result, fobj)
 		}
 
 		err = f.Close()
