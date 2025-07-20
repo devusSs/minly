@@ -40,16 +40,13 @@ var filesCmd = &cobra.Command{
 		fs, err = storage.NewFileStore()
 		logErr(err, "failed to create file store")
 
-		go func() {
-			var deleted int
-			deleted, err = fs.CleanOldFiles()
-			if err != nil {
-				log.Logger().Error().Err(err).Msg("failed to clean old files")
-				return
-			}
+		var deleted int
+		deleted, err = fs.CleanOldFiles()
+		logErr(err, "failed to clean old files")
 
-			log.Logger().Debug().Int("deleted", deleted).Msg("cleaned old files")
-		}()
+		if deleted > 0 {
+			log.Logger().Info().Int("deleted", deleted).Msg("cleaned old files")
+		}
 
 		files, err = fs.LoadAll()
 		logErr(err, "failed to load files")
