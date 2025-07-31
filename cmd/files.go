@@ -45,7 +45,7 @@ var filesCmd = &cobra.Command{
 		logErr(err, "failed to clean old files")
 
 		if deleted > 0 {
-			log.Logger().Info().Int("deleted", deleted).Msg("cleaned old files")
+			log.Logger().Debug().Int("deleted", deleted).Msg("cleaned old files")
 		}
 
 		files, err = fs.LoadAll()
