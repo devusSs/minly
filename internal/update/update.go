@@ -31,6 +31,10 @@ func DoUpdate(ctx context.Context, currentVersion string) (*Update, error) {
 		return nil, errors.New("current version cannot be empty")
 	}
 
+	if currentVersion == "dev" {
+		return nil, errors.New("running dev version, no updates available")
+	}
+
 	r, err := findLatestRelease(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find latest release: %w", err)

@@ -46,7 +46,7 @@ func saveAssetToFile(ctx context.Context, asset releaseAsset) (string, error) {
 	}
 
 	var f *os.File
-	f, err = os.CreateTemp(dir, asset.name)
+	f, err = os.Create(filepath.Join(dir, asset.name))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temporary file for asset %s: %w", asset.name, err)
 	}
@@ -68,13 +68,12 @@ func setupUpdatesDir() (string, error) {
 
 	updatesDir := filepath.Join(home, ".minly", "updates")
 
-	var dir string
-	dir, err = os.MkdirTemp(updatesDir, "*")
+	err = os.MkdirAll(updatesDir, 0700)
 	if err != nil {
-		return "", fmt.Errorf("failed to create updates directory: %w", err)
+		return "", fmt.Errorf("failed to create updates directory %s: %w", updatesDir, err)
 	}
 
-	return dir, nil
+	return updatesDir, nil
 }
 
 func unpackArchive(file string) (string, error) {

@@ -172,9 +172,13 @@ func findMatchingAsset(assets []releaseAsset) (releaseAsset, error) {
 
 	targetOS := runtime.GOOS
 	targetArch := runtime.GOARCH
+	if targetArch == "amd64" {
+		targetArch = "x86_64"
+	}
 
 	for _, asset := range assets {
-		if strings.Contains(asset.name, targetOS) && strings.Contains(asset.name, targetArch) {
+		name := strings.ToLower(asset.name)
+		if strings.Contains(name, targetOS) && strings.Contains(name, targetArch) {
 			return asset, nil
 		}
 	}
