@@ -3,46 +3,14 @@ package update
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
 	"strings"
 	"time"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 type release struct {
-	version   string
-	createdAt time.Time
-	changelog string
-	assets    []releaseAsset
-}
-
-func (r *release) isGreaterThan(currentVersion string) (bool, error) {
-	latest, err := semver.NewVersion(r.version)
-	if err != nil {
-		return false, fmt.Errorf("failed to parse latest version %s: %w", r.version, err)
-	}
-
-	var current *semver.Version
-	current, err = semver.NewVersion(currentVersion)
-	if err != nil {
-		return false, fmt.Errorf("failed to parse current version %s: %w", currentVersion, err)
-	}
-
-	return latest.GreaterThan(current), nil
-}
-
-type releaseAsset struct {
-	name        string
-	downloadURL string
-}
-
-const latestReleaseURL = "https://api.github.com/repos/devusSs/minly/releases/latest"
-
-type latestReleaseResponse struct {
 	URL       string `json:"url"`
 	AssetsURL string `json:"assets_url"`
 	UploadURL string `json:"upload_url"`
@@ -108,7 +76,7 @@ type latestReleaseResponse struct {
 		ContentType        string    `json:"content_type"`
 		State              string    `json:"state"`
 		Size               int       `json:"size"`
-		Digest             any       `json:"digest"`
+		Digest             string    `json:"digest"`
 		DownloadCount      int       `json:"download_count"`
 		CreatedAt          time.Time `json:"created_at"`
 		UpdatedAt          time.Time `json:"updated_at"`
@@ -119,11 +87,9 @@ type latestReleaseResponse struct {
 	Body       string `json:"body"`
 }
 
-func findLatestRelease(ctx context.Context) (*release, error) {
-	if ctx == nil {
-		return nil, errors.New("context cannot be nil")
-	}
+const latestReleaseURL = "https://api.github.com/repos/devusSs/minly/releases/latest"
 
+func getLatestRelease(ctx context.Context) (*release, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, latestReleaseURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -139,53 +105,57 @@ func findLatestRelease(ctx context.Context) (*release, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch latest release, status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("failed to get latest release: %s", resp.Status)
 	}
 
-	var res latestReleaseResponse
-	err = json.NewDecoder(resp.Body).Decode(&res)
+	var rel release
+	err = json.NewDecoder(resp.Body).Decode(&rel)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to decode latest release response: %w", err)
 	}
 
-	r := &release{
-		version:   res.TagName,
-		createdAt: res.CreatedAt,
-		changelog: res.Body,
-		assets:    make([]releaseAsset, 0, len(res.Assets)),
-	}
-
-	for _, asset := range res.Assets {
-		r.assets = append(r.assets, releaseAsset{
-			name:        asset.Name,
-			downloadURL: asset.BrowserDownloadURL,
-		})
-	}
-
-	return r, nil
+	return &rel, nil
 }
 
-func findMatchingAsset(assets []releaseAsset) (releaseAsset, error) {
-	if len(assets) == 0 {
-		return releaseAsset{}, errors.New("no assets available")
+type asset struct {
+	contentType string
+	url         string
+}
+
+func getChecksumsAsset(release *release) (*asset, error) {
+	for _, a := range release.Assets {
+		if strings.Contains(a.Name, "checksums") {
+			return &asset{
+				contentType: a.ContentType,
+				url:         a.BrowserDownloadURL,
+			}, nil
+		}
 	}
 
+	return nil, fmt.Errorf("checksums asset not found in release %s", release.TagName)
+}
+
+func getMatchingAsset(release *release) (*asset, error) {
 	targetOS := runtime.GOOS
 	targetArch := runtime.GOARCH
 	if targetArch == "amd64" {
 		targetArch = "x86_64"
 	}
 
-	for _, asset := range assets {
-		name := strings.ToLower(asset.name)
+	for _, a := range release.Assets {
+		name := strings.ToLower(a.Name)
 		if strings.Contains(name, targetOS) && strings.Contains(name, targetArch) {
-			return asset, nil
+			return &asset{
+				contentType: a.ContentType,
+				url:         a.BrowserDownloadURL,
+			}, nil
 		}
 	}
 
-	return releaseAsset{}, fmt.Errorf(
-		"no matching asset found for OS %s and architecture %s",
+	return nil, fmt.Errorf(
+		"no matching asset found for %s/%s in release %s",
 		targetOS,
 		targetArch,
+		release.TagName,
 	)
 }
