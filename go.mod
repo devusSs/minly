@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/gabriel-vasile/mimetype v1.4.9
+	github.com/gabriel-vasile/mimetype v1.4.10
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/minio/minio-go/v7 v7.0.95
