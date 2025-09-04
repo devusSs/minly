@@ -13,7 +13,7 @@ require (
 	github.com/minio/selfupdate v0.6.0
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/rs/zerolog v1.34.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/term v0.34.0
 )
@@ -40,7 +40,7 @@ require (
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
