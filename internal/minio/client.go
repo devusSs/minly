@@ -45,10 +45,16 @@ func NewClient(
 		Region: region,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
-	return &Client{minioClient: client, setup: false}, nil
+	return &Client{
+		minioClient:  client,
+		setup:        false,
+		bucketName:   "",
+		bucketRegion: "",
+		linkExpiry:   0,
+	}, nil
 }
 
 func (c *Client) Setup(bucketName string, bucketRegion string, linkExpiry time.Duration) error {

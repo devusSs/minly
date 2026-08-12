@@ -127,7 +127,7 @@ func CleanOld() error {
 		var combinedError strings.Builder
 		combinedError.WriteString("failed to clean old log files:\n")
 		for _, err := range fileErrors {
-			combinedError.WriteString(fmt.Sprintf("- %s\n", err.Error()))
+			_, _ = fmt.Fprintf(&combinedError, "- %s\n", err.Error())
 		}
 
 		return errors.New(combinedError.String())
@@ -146,10 +146,9 @@ func Enable() {
 
 const logFileRetention = 7 * 24 * time.Hour
 
-var (
-	file   *os.File
-	logger *zerolog.Logger
-)
+var file *os.File //nolint:gochecknoglobals // The package owns one process-wide log file.
+
+var logger *zerolog.Logger //nolint:gochecknoglobals // The package owns one process-wide logger.
 
 func noColor() bool {
 	s := strings.ToLower(os.Getenv("MINLY_LOG_NO_COLOR"))
@@ -161,15 +160,13 @@ func noColor() bool {
 	return err == nil && b
 }
 
-var fileTimestamp = time.Now().Format("2006-01-02_15-04-05")
-
 func createFile() (*os.File, error) {
 	logsDir, err := setupLogsDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup logs directory: %w", err)
 	}
 
-	fileName := fmt.Sprintf("minly_%s.log.json", fileTimestamp)
+	fileName := fmt.Sprintf("minly_%s.log.json", time.Now().Format("2006-01-02_15-04-05"))
 
 	filePath := filepath.Join(logsDir, fileName)
 
@@ -225,4 +222,4 @@ func level() zerolog.Level {
 	}
 }
 
-var suppressLog = false
+var suppressLog = false //nolint:gochecknoglobals // Suppress and Enable control process-wide logging.

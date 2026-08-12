@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
+
 	"github.com/devusSs/minly/internal/config"
 	"github.com/devusSs/minly/internal/log"
 	"github.com/devusSs/minly/internal/storage"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -102,5 +103,10 @@ func printFilesAsTable() error {
 		}
 	}
 
-	return table.Render()
+	err := table.Render()
+	if err != nil {
+		return fmt.Errorf("failed to render table: %w", err)
+	}
+
+	return nil
 }

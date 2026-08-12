@@ -6,11 +6,11 @@ import (
 	"runtime"
 )
 
-var (
-	Version string
-	Commit  string
-	Date    string
-)
+var Version = "dev" //nolint:gochecknoglobals // Release builds inject this value with a linker flag.
+
+var Commit = "unknown" //nolint:gochecknoglobals // Release builds inject this value with a linker flag.
+
+var Date = "unknown" //nolint:gochecknoglobals // Release builds inject this value with a linker flag.
 
 type Build struct {
 	Version   string `json:"version"`
@@ -62,19 +62,5 @@ func GetBuild() Build {
 		GoVersion: runtime.Version(),
 		GoOS:      runtime.GOOS,
 		GoArch:    runtime.GOARCH,
-	}
-}
-
-func init() {
-	if Version == "" {
-		Version = "dev"
-	}
-
-	if Commit == "" {
-		Commit = "unknown"
-	}
-
-	if Date == "" {
-		Date = "unknown"
 	}
 }

@@ -1,29 +1,28 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/spf13/cobra"
 
 	"github.com/devusSs/minly/internal/version"
-	"github.com/spf13/cobra"
 )
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information and exit",
-	Run: func(_ *cobra.Command, _ []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		b := version.GetBuild()
 
 		if versionPrintJSON {
-			fmt.Println(b.JSON())
+			cmd.Println(b.JSON())
 			return
 		}
 
 		if versionPrintGoString {
-			fmt.Println(b.String())
+			cmd.Println(b.String())
 			return
 		}
 
-		fmt.Println(b.Pretty())
+		cmd.Println(b.Pretty())
 	},
 }
 

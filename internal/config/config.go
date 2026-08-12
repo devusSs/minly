@@ -143,5 +143,6 @@ func newDefaultConfig() *Config {
 		MinioRegion:     "us-east-1",
 		MinioLinkExpiry: minMinioLinkExpiry,
 		YOURLSEndpoint:  &url.URL{Scheme: "http", Host: "localhost:80", Path: "/yourls-api.php"},
+		filePath:        "",
 	}
 }

@@ -18,7 +18,7 @@ func getChecksumForFile(file string) ([]byte, error) {
 
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open %s: %w", file, err)
 	}
 	defer f.Close()
 
@@ -26,7 +26,7 @@ func getChecksumForFile(file string) ([]byte, error) {
 
 	_, err = io.Copy(hasher, f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to hash %s: %w", file, err)
 	}
 
 	return hasher.Sum(nil), nil
@@ -46,8 +46,7 @@ func readChecksumForAssetFromFile(checksumsFile string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read checksums file %s: %w", checksumsFile, err)
 	}
 
-	lines := strings.Split(string(b), "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(string(b), "\n") {
 		if line == "" {
 			continue
 		}

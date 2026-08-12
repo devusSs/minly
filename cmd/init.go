@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/devusSs/minly/internal/config"
 	"github.com/devusSs/minly/internal/log"
 	"github.com/devusSs/minly/internal/secret"
 	"github.com/devusSs/minly/internal/version"
-	"github.com/spf13/cobra"
 )
 
 var cfg *config.Config
@@ -32,7 +33,7 @@ var initCmd = &cobra.Command{
 		err := log.Flush()
 		checkErr(err, "failed to flush log package")
 	},
-	Run: func(_ *cobra.Command, _ []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		log.Logger().Debug().Any("build", version.GetBuild()).Msg("init")
 
 		var err error
@@ -74,7 +75,7 @@ var initCmd = &cobra.Command{
 			cfg, err = config.FromInput()
 			logErr(err, "failed to read config from input")
 
-			fmt.Println()
+			cmd.Println()
 			log.Logger().Info().Msg("config initialized from input")
 		}
 

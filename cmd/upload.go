@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/devusSs/minly/internal/clipboard"
 	"github.com/devusSs/minly/internal/config"
 	"github.com/devusSs/minly/internal/log"
@@ -15,7 +17,6 @@ import (
 	"github.com/devusSs/minly/internal/secret"
 	"github.com/devusSs/minly/internal/storage"
 	"github.com/devusSs/minly/internal/yourls"
-	"github.com/spf13/cobra"
 )
 
 var uploadCmd = &cobra.Command{
