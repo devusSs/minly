@@ -27,14 +27,19 @@ func FromEnv() (*Config, error) {
 	return cfg, nil
 }
 
-var envFile string
+var envFile string //nolint:gochecknoglobals // SetEnvFile configures the package's subsequent FromEnv call.
 
 func loadEnvFile() error {
 	if envFile == "" {
 		return nil
 	}
 
-	return godotenv.Load(envFile)
+	err := godotenv.Load(envFile)
+	if err != nil {
+		return fmt.Errorf("failed to load %s: %w", envFile, err)
+	}
+
+	return nil
 }
 
 func parseEnv(cfg *Config) error {

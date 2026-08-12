@@ -21,6 +21,16 @@ type File struct {
 	YOURLSLink       string    `json:"yourls_link"`
 }
 
+func NewFile(minioLink string, minioLinkExpires time.Time, yourlsLink string) *File {
+	return &File{
+		ID:               uuid.NewString(),
+		Timestamp:        time.Now(),
+		MinioLink:        minioLink,
+		MinioLinkExpires: minioLinkExpires,
+		YOURLSLink:       yourlsLink,
+	}
+}
+
 func (f *File) String() string {
 	return fmt.Sprintf("%+v", *f)
 }
@@ -49,23 +59,9 @@ func (f *File) validate() error {
 	return nil
 }
 
-func NewFile(minioLink string, minioLinkExpires time.Time, yourlsLink string) *File {
-	return &File{
-		ID:               uuid.NewString(),
-		Timestamp:        time.Now(),
-		MinioLink:        minioLink,
-		MinioLinkExpires: minioLinkExpires,
-		YOURLSLink:       yourlsLink,
-	}
-}
-
 type FileStore struct {
 	dir string
 	mu  sync.Mutex
-}
-
-func (fs *FileStore) String() string {
-	return fmt.Sprintf("FileStore{dir: %s}", fs.dir)
 }
 
 func NewFileStore() (*FileStore, error) {
@@ -74,7 +70,11 @@ func NewFileStore() (*FileStore, error) {
 		return nil, fmt.Errorf("failed to get storage directory: %w", err)
 	}
 
-	return &FileStore{dir: dir}, nil
+	return &FileStore{dir: dir, mu: sync.Mutex{}}, nil
+}
+
+func (fs *FileStore) String() string {
+	return fmt.Sprintf("FileStore{dir: %s}", fs.dir)
 }
 
 func (fs *FileStore) Save(file *File) error {

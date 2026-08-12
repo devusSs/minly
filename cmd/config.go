@@ -5,10 +5,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/devusSs/minly/internal/config"
 	"github.com/devusSs/minly/internal/log"
 	"github.com/devusSs/minly/internal/secret"
-	"github.com/spf13/cobra"
 )
 
 var configCmd = &cobra.Command{
@@ -29,7 +30,7 @@ var configCmd = &cobra.Command{
 		err := log.Flush()
 		checkErr(err, "failed to flush log package")
 	},
-	Run: func(_ *cobra.Command, _ []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		var err error
 		cfg, err = config.Read()
 		logErr(err, "failed to read config")
@@ -55,27 +56,27 @@ var configCmd = &cobra.Command{
 			log.Logger().Debug().Msg("got YOURLS signature")
 		}
 
-		fmt.Println("Configuration")
-		fmt.Println("-------------")
-		fmt.Printf("Project Name:\t\t%s\n", cfg.ProjectName)
-		fmt.Printf("Created At:\t\t%s\n", cfg.CreatedAt.Format(time.RFC3339))
-		fmt.Printf("Updated At:\t\t%s\n", cfg.UpdatedAt.Format(time.RFC3339))
-		fmt.Printf("MinIO Endpoint:\t\t%s\n", cfg.MinioEndpoint)
-		fmt.Printf("MinIO Use SSL:\t\t%t\n", cfg.MinioUseSSL)
-		fmt.Printf("MinIO Bucket Name:\t%s\n", cfg.MinioBucketName)
-		fmt.Printf("MinIO Region:\t\t%s\n", cfg.MinioRegion)
-		fmt.Printf("MinIO Link Expiry:\t%s\n", cfg.MinioLinkExpiry.String())
-		fmt.Printf("YOURLS Endpoint:\t%s\n", cfg.YOURLSEndpoint)
+		cmd.Println("Configuration")
+		cmd.Println("-------------")
+		cmd.Printf("Project Name:\t\t%s\n", cfg.ProjectName)
+		cmd.Printf("Created At:\t\t%s\n", cfg.CreatedAt.Format(time.RFC3339))
+		cmd.Printf("Updated At:\t\t%s\n", cfg.UpdatedAt.Format(time.RFC3339))
+		cmd.Printf("MinIO Endpoint:\t\t%s\n", cfg.MinioEndpoint)
+		cmd.Printf("MinIO Use SSL:\t\t%t\n", cfg.MinioUseSSL)
+		cmd.Printf("MinIO Bucket Name:\t%s\n", cfg.MinioBucketName)
+		cmd.Printf("MinIO Region:\t\t%s\n", cfg.MinioRegion)
+		cmd.Printf("MinIO Link Expiry:\t%s\n", cfg.MinioLinkExpiry.String())
+		cmd.Printf("YOURLS Endpoint:\t%s\n", cfg.YOURLSEndpoint)
 
 		if configShowSensitive {
 			log.Logger().Debug().Msg("printing sensitive information")
 
-			fmt.Println()
-			fmt.Println("Secrets")
-			fmt.Println("-------")
-			fmt.Printf("MinIO Access Key:\t%s\n", minioAccessKey)
-			fmt.Printf("MinIO Access Secret:\t%s\n", minioAccessSecret)
-			fmt.Printf("YOURLS Signature:\t%s\n", yourlsSignature)
+			cmd.Println()
+			cmd.Println("Secrets")
+			cmd.Println("-------")
+			cmd.Printf("MinIO Access Key:\t%s\n", minioAccessKey)
+			cmd.Printf("MinIO Access Secret:\t%s\n", minioAccessSecret)
+			cmd.Printf("YOURLS Signature:\t%s\n", yourlsSignature)
 		}
 	},
 }

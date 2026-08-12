@@ -30,4 +30,4 @@ func FromFile() (*Config, error) {
 	return cfg, nil
 }
 
-var file string
+var file string //nolint:gochecknoglobals // SetFile configures the package's subsequent FromFile call.

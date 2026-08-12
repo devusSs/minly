@@ -6,9 +6,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/devusSs/minly/internal/lastrun"
 	"github.com/devusSs/minly/internal/system"
-	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{

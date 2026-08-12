@@ -149,6 +149,13 @@ linters:
 
     exhaustruct:
       exclude:
+        - ^github.com/caarlos0/env/v11.Options$
+        - ^github.com/minio/minio-go/v7.MakeBucketOptions$
+        - ^github.com/minio/minio-go/v7.Options$
+        - ^github.com/minio/minio-go/v7.PutObjectOptions$
+        - ^github.com/minio/selfupdate.Options$
+        - ^github.com/rs/zerolog.ConsoleWriter$
+        - ^github.com/spf13/cobra.Command$
         - ^net/http.Client$
         - ^net/http.Cookie$
         - ^net/http.Request$
@@ -245,6 +252,9 @@ linters:
       - std-error-handling
       - common-false-positives
     rules:
+      # Cobra commands and flags are conventionally registered at package scope.
+      - path: ^cmd/
+        linters: [gochecknoglobals, gochecknoinits]
       - source: "TODO"
         linters: [godot]
       - text: "should have a package comment"

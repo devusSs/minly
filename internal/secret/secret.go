@@ -19,12 +19,18 @@ func GetInput(prompt string) (string, error) {
 		prompt += " "
 	}
 
-	fmt.Print(prompt)
+	_, err := fmt.Fprint(os.Stdout, prompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to write prompt: %w", err)
+	}
 
 	byteInput, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println()
+	_, newlineErr := fmt.Fprintln(os.Stdout)
 	if err != nil {
 		return "", fmt.Errorf("failed to read input: %w", err)
+	}
+	if newlineErr != nil {
+		return "", fmt.Errorf("failed to write newline: %w", newlineErr)
 	}
 
 	return string(byteInput), nil

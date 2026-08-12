@@ -219,7 +219,10 @@ func getInput(prompt string, def string) (string, error) {
 		prompt += " "
 	}
 
-	fmt.Print(prompt)
+	_, err := fmt.Fprint(os.Stdout, prompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to write prompt: %w", err)
+	}
 
 	reader := bufio.NewReader(os.Stdin)
 	text, err := reader.ReadString('\n')

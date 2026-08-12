@@ -2,14 +2,14 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
+
+	"github.com/spf13/cobra"
 
 	"github.com/devusSs/minly/internal/log"
 	"github.com/devusSs/minly/internal/update"
 	"github.com/devusSs/minly/internal/version"
-	"github.com/spf13/cobra"
 )
 
 var updateCmd = &cobra.Command{
@@ -30,7 +30,7 @@ var updateCmd = &cobra.Command{
 		err := log.Flush()
 		checkErr(err, "failed to flush log package")
 	},
-	Run: func(_ *cobra.Command, _ []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer cancel()
 
@@ -48,9 +48,9 @@ var updateCmd = &cobra.Command{
 				Time("date", u.Date).
 				Msg("update completed successfully, please restart the application to apply changes")
 
-			fmt.Println()
-			fmt.Println("Changelog:")
-			fmt.Println(u.Changelog)
+			cmd.Println()
+			cmd.Println("Changelog:")
+			cmd.Println(u.Changelog)
 			return
 		}
 
