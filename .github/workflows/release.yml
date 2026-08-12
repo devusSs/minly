@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Create next patch tag
+        id: tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          latest=""
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              latest="$tag"
+              break
+            fi
+          done < <(git tag --list --sort=-version:refname)
+
+          if [[ -n "$latest" && "$(git rev-list -n 1 "$latest")" == "$GITHUB_SHA" ]]; then
+            next="$latest"
+            if gh release view "$next" >/dev/null 2>&1; then
+              echo "published=true" >> "$GITHUB_OUTPUT"
+              echo "tag=$next" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          elif [[ -z "$latest" ]]; then
+            next="v0.0.1"
+          else
+            version="${latest#v}"
+            IFS=. read -r major minor patch <<< "$version"
+            next="v${major}.${minor}.$((patch + 1))"
+          fi
+
+          if ! git rev-parse "$next" >/dev/null 2>&1; then
+            git tag "$next" "$GITHUB_SHA"
+            git push origin "$next"
+          fi
+
+          echo "published=false" >> "$GITHUB_OUTPUT"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Run GoReleaser
+        if: steps.tag.outputs.published != 'true'
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summarize release
+        run: echo "Released ${{ steps.tag.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
